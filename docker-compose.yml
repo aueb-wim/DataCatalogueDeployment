@@ -1,0 +1,35 @@
+version: '3.2'
+services:
+  datacatalogue_backend:
+    image: hbpmip/datacatalogue_spring_boot_backend:latest
+    ports:
+      - 8086
+    depends_on:
+      - datacatalogue_postgres
+    links:
+      - datacatalogue_postgres
+    restart: on-failure
+
+  datacatalogue_frontend:
+    image: hbpmip/datacatalogue_angular_frontend:latest
+    ports:
+      - 4200:4200
+    depends_on:
+      - datacatalogue_backend
+    links:
+      - datacatalogue_backend
+    restart: on-failure
+
+  datacatalogue_postgres:
+    image: postgres:9.5
+    ports:
+      - 5432
+    environment:
+      - POSTGRES_DB=datacatalog
+      - POSTGRES_USER=andy
+      - POSTGRES_PASSWORD=password
+
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+    restart: on-failure
