@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+
+#DC_PATH=~/opt/datacatalogue
+DC_PROJECT_NAME=dc
+
+if [[ $(command -v tput) ]]; then
+        red=`tput setaf 1`
+        green=`tput setaf 2`
+        reset=`tput sgr0`
+fi
+
+__red(){
+        local arg=""
+        if [[ "$1" = "-n" ]]; then
+                arg=$1
+                shift
+        fi
+        if [[ $(command -v tput) ]]; then
+                echo $arg "${red}$@${reset}" >&2
+        else
+                echo $arg "$@" >&2
+        fi
+}
+
+__green(){
+        local arg=""
+        if [[ "$1" = "-n" ]]; then
+                arg=$1
+                shift
+        fi
+        if [[ $(command -v tput) ]]; then
+                echo $arg "${green}$@${reset}"
+        else
+                echo $arg "$@"
+        fi
+}
+
+__check_docker_container(){
+        local result=1
+        local process_id=$(docker ps -a -q --filter name=$1)
+        if [[ "$process_id" != "" ]]; then
+                local process_state=$(docker inspect $process_id --format '{{.State.Status}}')
+                if [[ "$process_state" = "running" ]]; then
+                        result=0
+                fi
+        else
+                result=1
+        fi
+
+        if [[ $result -eq 0 ]]; then
+                __green "up"
+        else
+                __red "down"
+        fi
+}
+_start(){
+        local path=$(pwd)
+        #cd $DC_PATH
+        docker-compose --project-name $DC_PROJECT_NAME up -d
+        cd $path
+}
+
+_stop(){
+        local path=$(pwd)
+        #cd $DC_PATH
+        docker-compose --project-name $DC_PROJECT_NAME down
+        cd $path
+}
+
+_status(){
+        echo -n "Frontend                                               "
+        echo $(__check_docker_container $DC_PROJECT_NAME"_datacataloguefrontend_1")
+
+        echo -n "Backend                                                        "
+        echo $(__check_docker_container $DC_PROJECT_NAME"_datacatalogue_backend_1")
+
+        echo -n "DB                                                     "
+        echo $(__check_docker_container $DC_PROJECT_NAME"_datacatalogue_postgres_1")
+}
+
+_logs(){
+        local image=""
+        local process_id=""
+        local part=$2
+        local follow=""
+        if [[ "$2" = "-f" ]]; then
+                part=$3
+                follow="-f"
+        fi
+
+        case $part in
+                frontend)
+                        image=$DC_PROJECT_NAME"_datacataloguefrontend_1"
+                        ;;
+                backend)
+                        image=$DC_PROJECT_NAME"_datacatalogue_backend_1"
+                        ;;
+                db)
+                        image=$DC_PROJECT_NAME"_datacatalogue_postgres_1"
+                        ;;
+                *)
+                        echo "Usage: $0 logs (-f) [frontend|backend|db]"
+                        exit 1
+                        ;;
+        esac
+
+        process_id=$(docker ps -a -q --filter name=$image)
+        docker logs $follow $process_id
+}
+case $1 in
+        start)
+                _start
+                ;;
+        stop)
+                _stop
+                ;;
+        restart)
+                _stop
+                _start
+                ;;
+        status)
+                _status
+                ;;
+        logs)
+                _logs $@
+                ;;
+        *)
+                echo "Usage: $0 [start|stop|restart|status|logs]"
+                exit 1
+esac
+

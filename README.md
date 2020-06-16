@@ -14,7 +14,21 @@ git clone https://github.com/aueb-wim/DataCatalogueDeployment.git
 cd DataCatalogueDeployment/
 ```
 
-### Step 3: Run with docker
+### Step 3: Make the dc script executable
 ```shell
-docker-compose up
+sudo chmod +x dc
 ```
+
+### Step 4: Use the dc script to deploy DataCatalogue
+```shell
+sudo ./dc <option>
+```
+
+Available Options
+[start|stop|restart|status|logs]
+
+start : start datacatalogue containers
+stop  : stop datacatalogue containers
+restart: restart datacatalogue containers
+status: check the status of containers
+logs [fronend|backend|db] : check the logs of a specific container 
